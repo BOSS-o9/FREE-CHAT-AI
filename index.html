@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI Chat</title>
+<style>
+:root {
+  --bg: #0b0b0f;
+  --panel: #121219;
+  --soft: #1a1b22;
+  --text: #e8e8ef;
+  --muted: #a6a6b3;
+  --accent: #e5484d;
+}
+body { margin:0; height:100vh; display:flex; justify-content:center; align-items:center; background:var(--bg); font-family:Arial,sans-serif; color:var(--text);}
+.card { width:min(980px,96vw); height:90vh; display:flex; flex-direction:column; background:var(--panel); border-radius:20px; overflow:hidden; box-shadow:0 20px 60px rgba(0,0,0,.5);}
+header { padding:14px 18px; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid rgba(255,255,255,.06);}
+header .title { font-weight:700; }
+.btn { padding:8px 14px; border-radius:12px; background:linear-gradient(180deg, rgba(229,72,77,.15), rgba(229,72,77,.10)); color:#fff; border:1px solid rgba(229,72,77,.35); cursor:pointer; }
+.btn.ghost { background:transparent; border:1px solid rgba(255,255,255,.14); color:var(--text);}
+#auth, #chatView { display:none; height:100%; }
+#auth { display:grid; place-items:center; padding:28px; }
+.auth-box { width:min(500px,90vw); background:var(--panel); border-radius:18px; padding:22px; box-shadow:0 10px 40px rgba(0,0,0,.45);}
+.auth-title { font-size:20px; font-weight:800; margin-bottom:8px; }
+.row { display:flex; flex-direction:column; gap:8px; margin-top:12px; }
+input, textarea { padding:12px; border-radius:12px; border:1px solid rgba(255,255,255,.08); background: var(--soft); color: var(--text);}
+.auth-actions { display:flex; gap:8px; margin-top:16px;}
+.note { color: var(--muted); font-size:12px; margin-top:8px; }
+.danger { color: var(--accent); }
+
+#chatView { display:flex; flex-direction:column; height:100%; }
+#messages { flex:1; overflow-y:auto; padding:16px; display:flex; flex-direction:column; gap:10px; background:linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,0)); }
+.msg { display:flex; gap:10px; align-items:flex-end; animation: pop .18s ease-out;}
+.user { justify-content:flex-end;}
+.bubble { padding:10px 14px; border-radius:14px; max-width:78%; line-height:1.45; border:1px solid rgba(255,255,255,.06);}
+.user .bubble { background: radial-gradient(120px 60px at 10% -30%, rgba(229,72,77,.25), transparent), #1c1c25; border-color: rgba(229,72,77,.35);}
+.bot .bubble { background:#15151c;}
+.avatar { width:30px; height:30px; border-radius:50%; display:grid; place-items:center; background:#222; font-size:14px; opacity:.9; }
+
+.composer { display:flex; padding:12px; border-top:1px solid rgba(255,255,255,.06); gap:10px; background:var(--panel);}
+textarea { flex:1; resize:none; max-height:150px; border-radius:12px; border:1px solid rgba(255,255,255,.09); background:var(--soft); color:var(--text); padding:12px;}
+.send-btn { padding:0 16px; border-radius:12px; background:var(--accent); border:none; color:#fff; cursor:pointer; font-weight:600; }
+.send-btn:hover { filter: brightness(1.1); }
+
+@keyframes pop { from { transform: translateY(4px); opacity:0 } to { transform: translateY(0); opacity:1 } }
+</style>
+</head>
+<body>
+<div class="card">
+  <header>
+    <div class="title">AI Chat</div>
+    <button class="btn ghost" onclick="logout()">Выйти</button>
+  </header>
+
+  <section id="auth">
+    <div class="auth-box">
+      <div class="auth-title">Вход / Регистрация</div>
+      <div class="row"><label>Логин</label><input id="login" type="text"></div>
+      <div class="row"><label>Пароль</label><input id="pass" type="password"></div>
+      <div class="auth-actions">
+        <button class="btn" onclick="register()">Регистрация</button>
+        <button class="btn" onclick="login()">Вход</button>
+      </div>
+      <div id="authMsg" class="note"></div>
+    </div>
+  </section>
+
+  <section id="chatView">
+    <div id="messages"></div>
+    <div class="composer">
+      <textarea id="composer" placeholder="Напишите сообщение..." rows="1"></textarea>
+      <button class="send-btn" onclick="sendText()">Отправить</button>
+    </div>
+  </section>
+</div>
+
+<script>
+const OPENROUTER_API_KEY="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";
+const MODEL_CHAIN=["deepseek/deepseek-r1:free","deepseek/deepseek-r1-0528:free","together_ai/meta-llama/llama-3.1-8b-instruct:free"];
+let currentUser=null;
+const els={messages:document.getElementById('messages'), textarea:document.getElementById('composer')};
+
+function register(){const l=document.getElementById('login').value.trim();const p=document.getElementById('pass').value.trim();if(!l||!p)return showAuthMsg('Введите логин и пароль',true);if(localStorage.getItem('user_'+l))return showAuthMsg('Пользователь уже существует',true);localStorage.setItem('user_'+l,JSON.stringify({password:p,history:[]}));showAuthMsg('Регистрация успешна! Теперь войдите.',false);}
+function login(){const l=document.getElementById('login').value.trim();const p=document.getElementById('pass').value.trim();const r=localStorage.getItem('user_'+l);if(!r)return showAuthMsg('Пользователь не найден',true);const d=JSON.parse(r);if(d.password!==p)return showAuthMsg('Неверный пароль',true);currentUser=l; openChat();}
+function logout(){currentUser=null;document.getElementById('auth').style.display='grid';document.getElementById('chatView').style.display='none';}
+function showAuthMsg(msg,d=false){const el=document.getElementById('authMsg');el.textContent=msg;el.style.color=d?'#e5484d':'#a6a6b3';}
+function openChat(){document.getElementById('auth').style.display='none';document.getElementById('chatView').style.display='flex';renderHistory();if(getHistory().length===0)addMessage('bot','Привет! Я твой ИИ‑помощник.');}
+function getHistory(){return currentUser?JSON.parse(localStorage.getItem('user_'+currentUser))?.history||[]:[];}
+function saveHistoryEntry(r,c){const raw=localStorage.getItem('user_'+currentUser);const d=raw?JSON.parse(raw):{password:'',history:[]};d.history.push({role:r,content:c});localStorage.setItem('user_'+currentUser,JSON.stringify(d));}
+function addMessage(role,content){const wrap=document.createElement('div');wrap.className='msg '+role;const avatar=document.createElement('div');avatar.className='avatar';avatar.textContent=role==='user'?'👤':'🤖';const bubble=document.createElement('div');bubble.className='bubble';bubble.textContent=content;wrap.appendChild(avatar);wrap.appendChild(bubble);els.messages.appendChild(wrap);els.messages.scrollTop = els.messages.scrollHeight;saveHistoryEntry(role,content);}
+function renderHistory(){els.messages.innerHTML='';for(const m of getHistory()) addMessage(m.role,m.content);}
+async function sendText(){const t=els.textarea.value.trim();if(!t||!currentUser)return;els.textarea.value='';addMessage('user',t);const r=await askModel(t);addMessage('bot',r);}
+function buildMessagesForAPI(t){const msgs=[];for(const m of getHistory().slice(-12)) msgs.push({role:m.role==='user'?'user':'assistant',content:[{type:'text',text:m.content}]} ); msgs.push({role:'user',content:[{type:'text',text:t}]});return msgs;}
+async function askModel(t){for(const m of MODEL_CHAIN){try{const res=await fetch('https://openrouter.ai/api/v1/chat/completions',{method:'POST',headers:{'Authorization':'Bearer '+OPENROUTER_API_KEY,'Content-Type':'application/json'},body:JSON.stringify({model:m,messages:buildMessagesForAPI(t),temperature:0.7,max_tokens:512})});const d=await res.json();const r=d?.choices?.[0]?.message?.content;if(r)return r;}catch(e){} } return 'Ошибка API или модель занята.'; }
+els.textarea.addEventListener('input',()=>{els.textarea.style.height='auto';els.textarea.style.height=Math.min(150,els.textarea.scrollHeight)+'px';});
+document.getElementById('auth').style.display='grid';
+</script>
+</body>
+</html>
