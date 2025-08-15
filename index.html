@@ -76,25 +76,118 @@ textarea { flex:1; resize:none; max-height:150px; border-radius:12px; border:1px
 </div>
 
 <script>
-const OPENROUTER_API_KEY="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";
-const MODEL_CHAIN=["deepseek/deepseek-r1:free","deepseek/deepseek-r1-0528:free","together_ai/meta-llama/llama-3.1-8b-instruct:free"];
+const OPENROUTER_API_KEY="твой_ключ_сюда";
+const MODEL_CHAIN=["deepseek/deepseek-r1:free"]; // оставил только одну модель
 let currentUser=null;
 const els={messages:document.getElementById('messages'), textarea:document.getElementById('composer')};
 
-function register(){const l=document.getElementById('login').value.trim();const p=document.getElementById('pass').value.trim();if(!l||!p)return showAuthMsg('Введите логин и пароль',true);if(localStorage.getItem('user_'+l))return showAuthMsg('Пользователь уже существует',true);localStorage.setItem('user_'+l,JSON.stringify({password:p,history:[]}));showAuthMsg('Регистрация успешна! Теперь войдите.',false);}
-function login(){const l=document.getElementById('login').value.trim();const p=document.getElementById('pass').value.trim();const r=localStorage.getItem('user_'+l);if(!r)return showAuthMsg('Пользователь не найден',true);const d=JSON.parse(r);if(d.password!==p)return showAuthMsg('Неверный пароль',true);currentUser=l; openChat();}
-function logout(){currentUser=null;document.getElementById('auth').style.display='grid';document.getElementById('chatView').style.display='none';}
-function showAuthMsg(msg,d=false){const el=document.getElementById('authMsg');el.textContent=msg;el.style.color=d?'#e5484d':'#a6a6b3';}
-function openChat(){document.getElementById('auth').style.display='none';document.getElementById('chatView').style.display='flex';renderHistory();if(getHistory().length===0)addMessage('bot','Привет! Я твой ИИ‑помощник.');}
-function getHistory(){return currentUser?JSON.parse(localStorage.getItem('user_'+currentUser))?.history||[]:[];}
-function saveHistoryEntry(r,c){const raw=localStorage.getItem('user_'+currentUser);const d=raw?JSON.parse(raw):{password:'',history:[]};d.history.push({role:r,content:c});localStorage.setItem('user_'+currentUser,JSON.stringify(d));}
-function addMessage(role,content){const wrap=document.createElement('div');wrap.className='msg '+role;const avatar=document.createElement('div');avatar.className='avatar';avatar.textContent=role==='user'?'👤':'🔴';const bubble=document.createElement('div');bubble.className='bubble';bubble.textContent=content;wrap.appendChild(avatar);wrap.appendChild(bubble);els.messages.appendChild(wrap);els.messages.scrollTop = els.messages.scrollHeight;saveHistoryEntry(role,content);}
-function renderHistory(){els.messages.innerHTML='';for(const m of getHistory()) addMessage(m.role,m.content);}
-async function sendText(){const t=els.textarea.value.trim();if(!t||!currentUser)return;els.textarea.value='';addMessage('user',t);const r=await askModel(t);addMessage('bot',r);}
-function buildMessagesForAPI(t){const msgs=[];for(const m of getHistory().slice(-12)) msgs.push({role:m.role==='user'?'user':'assistant',content:[{type:'text',text:m.content}]} ); msgs.push({role:'user',content:[{type:'text',text:t}]});return msgs;}
-async function askModel(t){for(const m of MODEL_CHAIN){try{const res=await fetch('https://openrouter.ai/api/v1/chat/completions',{method:'POST',headers:{'Authorization':'Bearer '+OPENROUTER_API_KEY,'Content-Type':'application/json'},body:JSON.stringify({model:m,messages:buildMessagesForAPI(t),temperature:0.7,max_tokens:512})});const d=await res.json();const r=d?.choices?.[0]?.message?.content;if(r)return r;}catch(e){} } return 'Ошибка. Обратите к разработчик пожалуйста'; }
-els.textarea.addEventListener('input',()=>{els.textarea.style.height='auto';els.textarea.style.height=Math.min(150,els.textarea.scrollHeight)+'px';});
+function register(){
+  const l=document.getElementById('login').value.trim();
+  const p=document.getElementById('pass').value.trim();
+  if(!l||!p) return showAuthMsg('Введите логин и пароль',true);
+  if(localStorage.getItem('user_'+l)) return showAuthMsg('Пользователь уже существует',true);
+  localStorage.setItem('user_'+l,JSON.stringify({password:p,history:[]}));
+  showAuthMsg('Регистрация успешна! Теперь войдите.',false);
+}
+function login(){
+  const l=document.getElementById('login').value.trim();
+  const p=document.getElementById('pass').value.trim();
+  const r=localStorage.getItem('user_'+l);
+  if(!r) return showAuthMsg('Пользователь не найден',true);
+  const d=JSON.parse(r);
+  if(d.password!==p) return showAuthMsg('Неверный пароль',true);
+  currentUser=l; openChat();
+}
+function logout(){
+  currentUser=null;
+  document.getElementById('auth').style.display='grid';
+  document.getElementById('chatView').style.display='none';
+}
+function showAuthMsg(msg,d=false){
+  const el=document.getElementById('authMsg');
+  el.textContent=msg;
+  el.style.color=d?'#e5484d':'#a6a6b3';
+}
+function openChat(){
+  document.getElementById('auth').style.display='none';
+  document.getElementById('chatView').style.display='flex';
+  renderHistory();
+  if(getHistory().length===0)addMessage('bot','Привет! Я твой ИИ-помощник.');
+}
+function getHistory(){
+  return currentUser?JSON.parse(localStorage.getItem('user_'+currentUser))?.history||[]:[];
+}
+function saveHistoryEntry(r,c){
+  const raw=localStorage.getItem('user_'+currentUser);
+  const d=raw?JSON.parse(raw):{password:'',history:[]};
+  d.history.push({role:r,content:c});
+  localStorage.setItem('user_'+currentUser,JSON.stringify(d));
+}
+function addMessage(role,content){
+  const wrap=document.createElement('div');
+  wrap.className='msg '+role;
+  const avatar=document.createElement('div');
+  avatar.className='avatar';
+  avatar.textContent=role==='user'?'👤':'🔴';
+  const bubble=document.createElement('div');
+  bubble.className='bubble';
+  bubble.textContent=content;
+  wrap.appendChild(avatar);
+  wrap.appendChild(bubble);
+  els.messages.appendChild(wrap);
+  els.messages.scrollTop = els.messages.scrollHeight;
+  saveHistoryEntry(role,content);
+}
+function renderHistory(){
+  els.messages.innerHTML='';
+  for(const m of getHistory()) addMessage(m.role,m.content);
+}
+async function sendText(){
+  const t=els.textarea.value.trim();
+  if(!t||!currentUser) return;
+  els.textarea.value='';
+  addMessage('user',t);
+  const r=await askModel(t);
+  addMessage('bot',r);
+}
+function buildMessagesForAPI(t){
+  const msgs=[];
+  for(const m of getHistory().slice(-12)) msgs.push({role:m.role==='user'?'user':'assistant',content:[{type:'text',text:m.content}]});
+  msgs.push({role:'user',content:[{type:'text',text:t}]});
+  return msgs;
+}
+async function askModel(t){
+  for(const m of MODEL_CHAIN){
+    try{
+      const res=await fetch('https://openrouter.ai/api/v1/chat/completions',{
+        method:'POST',
+        headers:{
+          'Authorization':'Bearer '+OPENROUTER_API_KEY,
+          'Content-Type':'application/json'
+        },
+        body:JSON.stringify({
+          model:m,
+          messages:buildMessagesForAPI(t),
+          temperature:0.7,
+          max_tokens:512
+        })
+      });
+      const d=await res.json();
+      let r=d?.choices?.[0]?.message?.content;
+      if(Array.isArray(r)) r=r.map(c=>c.text||'').join('\n');
+      if(r) return r;
+    }catch(e){
+      console.error("Ошибка при запросе модели:",e);
+    }
+  }
+  return 'Ошибка. Обратитесь к разработчику.';
+}
+els.textarea.addEventListener('input',()=>{
+  els.textarea.style.height='auto';
+  els.textarea.style.height=Math.min(150,els.textarea.scrollHeight)+'px';
+});
 document.getElementById('auth').style.display='grid';
 </script>
 </body>
-</html>
+  </html>
+
