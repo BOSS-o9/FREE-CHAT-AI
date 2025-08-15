@@ -75,8 +75,7 @@ textarea { flex:1; resize:none; max-height:150px; border-radius:12px; border:1px
   </section>
 </div>
 
-<script>
-const OPENROUTER_API_KEY="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";
+<script>const OPENROUTER_API_KEY="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";
 const MODEL_CHAIN=["deepseek/deepseek-r1:free","deepseek/deepseek-r1-0528:free","together_ai/meta-llama/llama-3.1-8b-instruct:free"];
 let currentUser=null;
 const els={messages:document.getElementById('messages'), textarea:document.getElementById('composer')};
@@ -97,4 +96,5 @@ els.textarea.addEventListener('input',()=>{els.textarea.style.height='auto';els.
 document.getElementById('auth').style.display='grid';
 </script>
 </body>
+
 </html>
